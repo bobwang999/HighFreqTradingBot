@@ -164,7 +164,7 @@ while(1):
                     cost = price
 
                 #add fees to price
-                cost = (1+fee) * cost
+                cost = str((1+fee) * float(cost))
                 print("Bought@" + str(cost) +" x" + str(amount))
                 lastBuyTs = time.clock()
                 if (initialBuy == 0):
