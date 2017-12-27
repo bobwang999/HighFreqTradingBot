@@ -6,12 +6,12 @@ macd_data = [459.99,448.85,446.06,450.81,442.8,448.97,444.57,441.4,430.47,420.05
 
 MACD_back_history = 7
 
-Sell_ratios = [[0,1.15],[600, 1.05],[1800, 1.03]]
-Stop_loss_ratio = 0.9
+Sell_ratios = [[0,1.12],[600, 1.05],[1800, 1.03]]
+Stop_loss_ratio = 0.88
 
 #Strong, medium, light
-RSI_Sell_levels = [90, 70, 40]
-RSI_Buy_levels = [15, 24, 65]
+RSI_Sell_levels = [90, 70, 32]
+RSI_Buy_levels = [15, 24, 68]
 
 
 def EMA1(values, window):
@@ -138,6 +138,7 @@ def HFT(cost, lastBuyTs, currTs, price, fee, history, asks, bids, lastAction):
             if (max(history[:-2])< Stop_loss_ratio * float(cost)):
                 print("cost: " + str(cost))
                 print("price: " + str(price))
+                print("Stop loss!!!")
                 return 1;
 
         #Sell base on profit over time
@@ -145,6 +146,8 @@ def HFT(cost, lastBuyTs, currTs, price, fee, history, asks, bids, lastAction):
             if(float(price) > float(cost) * sr[1] and currTs-lastBuyTs > sr[0]):
                 print("cost: " + str(cost))
                 print("price: " + str(price))
+                print("time elapsed: " + str(currTs-lastBuyTs))
+                return 1;
 
         #RSI pull back + MACD dropping or negative
         if(RSIvalue > RSI_Sell_levels[0]):
