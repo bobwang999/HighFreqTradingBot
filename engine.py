@@ -5,6 +5,10 @@ import HFT_algo
 
 ddd = [0,1,2,3,4,5,6,7,8,9]
 
+#Enable Trading
+TradingEnabled = True
+FastFill = True
+
 #Exchanges
 sym = 'BNBETH'
 input_str = input('Enter your Exchange, default BNBETH:')
@@ -14,6 +18,8 @@ if input_str != '':
 amount = 10
 input_str = input('Enter your amount, default 10:')
 if input_str != '':
+    if input_str == '0':
+        TradingEnabled = False
     amount = int(input_str)
 
 #Sampling CONFIG
@@ -33,10 +39,6 @@ MAX_HIST = 40 * samples_per_min
 fee = 0.0005
 limit = False
 
-
-#Enable Trading
-TradingEnabled = False
-FastFill = True
 
 
 #load api key 
@@ -88,6 +90,9 @@ def get_per_min_history(history):
     return per_min_hist;
     
 
+accProfit  = 0
+initialBuy = 0
+initialBuyTs = 0
 history = []
 orders = client.get_my_trades(symbol=sym,limit = 1)
 cost = orders[0]['price']
@@ -97,6 +102,7 @@ lastSellTs = lastBuyTs
 
 print (time_now() + "HFT BOT Starting now for " + sym)
 print ("Amount = " + str(amount) +" SamplingRate = " + str(samplingRate) + " Sample Avg window: "+ str(samples_per_min))
+print ("TRADING:" + str(TradingEnabled))
 
 if (FastFill):
     print("FastFill Enabled... starting filling with faster sampling rate")
@@ -156,8 +162,14 @@ while(1):
                     cost = orders[0]['price']
                 else:
                     cost = price
+
+                #add fees to price
+                cost = (1+fee) * cost
                 print("Bought@" + str(cost) +" x" + str(amount))
                 lastBuyTs = time.clock()
+                if (initialBuy == 0):
+                    initialBuy = cost
+                    initialBuyTs = currTs
             elif action ==1:
                 if TradingEnabled:
                     if order != None:
@@ -168,12 +180,15 @@ while(1):
                 else:
                     sell_price = price
 
-                if(sell_price < 0.999 * price):
+                if(float(sell_price) < 0.999 * float(price)):
                     print("Trading Lantency cause > 0.1% lost! Sell Price: "+ str(sell_price)+ " Last Price: " + str(price))
 
-                profit = (float(sell_price)-float(cost))/float(cost) - fee
-                
+                profit = (float(sell_price) * (1-fee)-float(cost))/float(cost)
                 print("Last Sell Price: " + str(sell_price) + " Cost: " + str(cost) + " Profit%: " + str(profit*100) + " Time Taken: "+ str(currTs-lastSellTs) + " s")
+
+                accProfit += profit
+                profit_if_no_sell = (float(sell_price) * (1-fee) -float(initialBuy))/float(initialBuy)
+                print("Accumulated Profit: " + str(accProfit*100) + " Profit if no sell: " + str(profit_if_no_sell*100) + " Time Taken: "+ str(currTs-initialBuyTs) + " s")
                 lastSellTs = currTs                
 
     time.sleep(samplingRate)
