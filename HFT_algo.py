@@ -3,6 +3,17 @@ import numpy as np
 data = [46.125,47.125,46.4375,46.9375,44.9375,44.2500,44.6250,45.7500,47.8125,47.5625,47.0000,44.5625,46.3125,47.6875,46.6875,45.6875,43.0625,43.5625,44.8750,43.6875, 46.125,47.125,46.4375,46.9375,44.9375,44.2500,44.6250,45.7500,47.8125,47.5625,47.0000,44.5625,46.3125,47.6875,46.6875,45.6875,43.0625,43.5625,44.8750,43.6875,46.125,47.125,46.4375,46.9375,44.9375,44.2500,44.6250,45.7500,47.8125,47.5625,47.0000,44.5625,46.3125,47.6875,46.6875,45.6875,43.0625,43.5625,44.8750,43.6875,46.125,47.125,46.4375,46.9375,44.9375,44.2500,44.6250,45.7500,47.8125,47.5625,47.0000,44.5625,46.3125,47.6875,46.6875,45.6875,43.0625,43.5625,44.8750,43.6875,46.125,47.125,46.4375,46.9375,44.9375,44.2500,44.6250,45.7500,47.8125,47.5625,47.0000,44.5625,46.3125,47.6875,46.6875,45.6875,43.0625,43.5625,44.8750,43.6875]
 macd_data = [459.99,448.85,446.06,450.81,442.8,448.97,444.57,441.4,430.47,420.05,431.14,425.66,430.58,431.72,437.87,428.43,428.35,432.5,443.66,455.72,454.49,452.08,452.73,461.91,463.58,461.14,452.08,442.66,428.91,429.79,431.99,427.72,423.2,426.21,426.98,435.69,434.33,429.8,419.85,426.24,402.8,392.05,390.53,398.67,406.13,405.46,408.38,417.2,430.12,442.78,439.29,445.52,449.98,460.71,458.66,463.84,456.77,452.97,454.74,443.86,428.85,434.58,433.26,442.93,439.66,441.35]
 
+
+MACD_back_history = 7
+
+Sell_ratios = [[0,1.15],[600, 1.05],[1800, 1.03]]
+Stop_loss_ratio = 0.9
+
+#Strong, medium, light
+RSI_Sell_levels = [90, 70, 40]
+RSI_Buy_levels = [15, 24, 65]
+
+
 def EMA1(values, window):
     #print(values)
     #print(window)
@@ -40,23 +51,23 @@ def MACD(values):
     #POSITIVE, BUY
     if(diff[len(diff)-1] > 0 and diff[len(diff)-2] >= 0 and diff[len(diff)-1] > diff[len(diff)-2]):
         i = 3
-        while len(diff)-i >= 0 and i < 5:
+        while len(diff)-i >= 0 and i < MACD_back_history:
             if diff[len(diff)-i] < 0:
                 #print("MACD buy :")
                 #print(diff[len(diff)-min(5,len(diff)):])
-                return [2, diff[len(diff)-1]]
+                return [2, diff[len(diff)-1]-diff[len(diff)-2],diff[len(diff)-1]];
             i+=1;
 
     #NEGAT
     if(diff[len(diff)-1] < 0 and diff[len(diff)-2] <= 0 and diff[len(diff)-1] < diff[len(diff)-2]):
         i = 3
-        while len(diff)-i >= 0 and i < 5:
+        while len(diff)-i >= 0 and i < MACD_back_history:
             if diff[len(diff)-i] > 0:
                 #print("MACD sell :")
                 #print(diff[len(diff)-min(5,len(diff)):])
-                return [1,diff[len(diff)-1]]
+                return [1,diff[len(diff)-1]-diff[len(diff)-2],diff[len(diff)-1]];
             i+=1;
-    return [0,diff[len(diff)-1]];
+    return [0,diff[len(diff)-1]-diff[len(diff)-2],diff[len(diff)-1]];
 
 
 def RSI(values, window = 14):
@@ -123,53 +134,48 @@ def HFT(cost, lastBuyTs, currTs, price, fee, history, asks, bids, lastAction):
 
     if(lastAction != 1):
         # 1. Stop loss
-        if float(price) < 0.9 * float(cost):
-            if (max(history[:-2])< 0.9 * float(cost)):
+        if float(price) < Stop_loss_ratio * float(cost):
+            if (max(history[:-2])< Stop_loss_ratio * float(cost)):
                 print("cost: " + str(cost))
                 print("price: " + str(price))
                 return 1;
-            #any time 5%
-        if(float(price) > float(cost) * 1.05):
-            
-            print("cost: " + str(cost))
-            print("price: " + str(price))
-            
-            return 1;
 
-        #10mins 3%
-        if(float(price) > float(cost) * 1.03 and currTs-lastBuyTs > 600):
-            print("cost: " + str(cost))
-            print("price: " + str(price))
-            return 1;
-
-        #30mins 2%
-        if(float(price) > float(cost) * 1.02 and currTs-lastBuyTs > 1800):
-            print("cost: " + str(cost))
-            print("price: " + str(price))
-            return 1;
+        #Sell base on profit over time
+        for sr in Sell_ratios:
+            if(float(price) > float(cost) * sr[1] and currTs-lastBuyTs > sr[0]):
+                print("cost: " + str(cost))
+                print("price: " + str(price))
 
         #RSI pull back + MACD dropping or negative
-        if(RSIvalue > 70 and MACDvalue[1] < 0):
+        if(RSIvalue > RSI_Sell_levels[0]):
+            print("RSI: " + str(RSIvalue))
+            print("MACD: "+str(MACDvalue))
+            return 1;
+        
+        if(RSIvalue > RSI_Sell_levels[1] and MACDvalue[1] < 0 and MACDvalue[2] <= 0):
             print("RSI: " + str(RSIvalue))
             print("MACD: "+str(MACDvalue))
             return 1;
 
-        if(MACDvalue[0] == 1 and RSIvalue > 60):
+        if(RSIvalue > RSI_Sell_levels[2] and MACDvalue[0] == 1):
             print("RSI: " + str(RSIvalue))
             print("MACD: "+str(MACDvalue))
             return 1;
 
     if(lastAction != 2):
         #decide buy first
-        if(RSIvalue < 30):
+        if(RSIvalue < RSI_Buy_levels[0]):
             print("RSI: " + str(RSIvalue))
             print("MACD: "+str(MACDvalue))
             return 2;
-        if(RSIvalue < 65 and MACDvalue[0] == 2):
+        if(RSIvalue < RSI_Buy_levels[1] and MACDvalue[1] > 0):
             print("RSI: " + str(RSIvalue))
             print("MACD: "+str(MACDvalue))
             return 2;
-
+        if(RSIvalue < RSI_Buy_levels[2] and MACDvalue[0] == 2):
+            print("RSI: " + str(RSIvalue))
+            print("MACD: "+str(MACDvalue))
+            return 2;
     return 0
 
 

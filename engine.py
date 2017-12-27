@@ -3,17 +3,41 @@ from binance.enums import *
 import time
 import HFT_algo
 
-#TEST CONFIG
-if 1:
-    MAX_HIST = 2400#2400 #40mins, at least we need 35 samples
-    MINS = int(MAX_HIST/60)
-    samplingRate = 1
-    samples_per_min = int(round(60/samplingRate))
-else:
-    MAX_HIST = 800
-    MINS = int(MAX_HIST/60)
-    samplingRate = 0.1
-    samples_per_min = 10
+ddd = [0,1,2,3,4,5,6,7,8,9]
+
+#Exchanges
+sym = 'BNBETH'
+input_str = input('Enter your Exchange, default BNBETH:')
+if input_str != '':
+    sym = input_str
+
+amount = 10
+input_str = input('Enter your amount, default 10:')
+if input_str != '':
+    amount = int(input_str)
+
+#Sampling CONFIG
+samplingRate = 0.5
+samples_per_min = 30
+
+input_str = input('Enter your sampling rate, default 0.5:')
+if input_str != '':
+    samplingRate = float(input_str)
+
+input_str = input('Enter your average window, default 30:')
+if input_str != '':
+    samples_per_min = int(input_str)
+
+MAX_HIST = 40 * samples_per_min
+
+fee = 0.0005
+limit = False
+
+
+#Enable Trading
+TradingEnabled = False
+FastFill = True
+
 
 #load api key 
 f = open("API.txt", "r")
@@ -23,15 +47,6 @@ secret = lines[1].split(" ")[2]
 
 #Open client
 client = Client(api_key,secret)
-
-#Exchanges
-sym = 'BNBETH'
-fee = 0.0005
-limit = False
-amount = 5
-
-#Enable Trading
-TradingEnabled = False
 
 def time_now():
     t = time.localtime()
@@ -58,17 +73,17 @@ def Perform(action,price,quan):
                 side=side,
                 type = 'MARKET',
                 quantity=quan)
-        print("Made an order:" + actionStr + "@" + str(order['price']) +" x" + str(quan))
-        print (order)
+        #print("Made an order:" + actionStr + "@" + str(order['price']) +" x" + str(quan))
+        #print (order)
         return order
 
-def get_per_min_history(history,sampling_rate):
+def get_per_min_history(history):
     i = 0;
     per_min_hist = []
     while i < len(history):
         if i%samples_per_min == 0:
             per_min_hist.append(0)
-        per_min_hist[int(i/samples_per_min)]+= float(history[i])/samples_per_min;        
+        per_min_hist[int(i/samples_per_min)]+= float(history[i])/samples_per_min;
         i+=1;
     return per_min_hist;
     
@@ -79,6 +94,16 @@ cost = orders[0]['price']
 lastAction = 1
 lastBuyTs = time.clock()
 lastSellTs = lastBuyTs
+
+print (time_now() + "HFT BOT Starting now for " + sym)
+print ("Amount = " + str(amount) +" SamplingRate = " + str(samplingRate) + " Sample Avg window: "+ str(samples_per_min))
+
+if (FastFill):
+    print("FastFill Enabled... starting filling with faster sampling rate")
+
+    originalSR = samplingRate
+    #use 5sec sample as a min
+    samplingRate = 0.075
 
 while(1):
     run = False
@@ -101,8 +126,16 @@ while(1):
     history.append(price)
     if len(history) > MAX_HIST:
         history = history[1:MAX_HIST+1]
-        per_min_history = get_per_min_history(history, samplingRate);      
+        per_min_history = get_per_min_history(history);
         run = True
+    elif len(history)%(int(MAX_HIST/20)) == 0:
+        print (time_now() + str(int(len(history)/(int(MAX_HIST/20)))*5) + "% history filled")
+
+    if FastFill == True and len(history) == MAX_HIST:
+        samplingRate = originalSR
+        FastFill = False
+        print("FastFill Completed, now samping rate = " + str(samplingRate))
+        print("-----------------------------------------------------------")
 
     if(run):
         #Call HFT module to decide
@@ -123,6 +156,7 @@ while(1):
                     cost = orders[0]['price']
                 else:
                     cost = price
+                print("Bought@" + str(cost) +" x" + str(amount))
                 lastBuyTs = time.clock()
             elif action ==1:
                 if TradingEnabled:
@@ -134,9 +168,12 @@ while(1):
                 else:
                     sell_price = price
 
-                profit = (float(price)-float(cost))/float(cost) - fee
+                if(sell_price < 0.999 * price):
+                    print("Trading Lantency cause > 0.1% lost! Sell Price: "+ str(sell_price)+ " Last Price: " + str(price))
+
+                profit = (float(sell_price)-float(cost))/float(cost) - fee
                 
-                print("Last Sell Price: " + str(price) + " Cost: " + str(cost) + " Profit%: " + str(profit*100) + " Time Taken: "+ str(currTs-lastSellTs) + " s")
+                print("Last Sell Price: " + str(sell_price) + " Cost: " + str(cost) + " Profit%: " + str(profit*100) + " Time Taken: "+ str(currTs-lastSellTs) + " s")
                 lastSellTs = currTs                
 
     time.sleep(samplingRate)
