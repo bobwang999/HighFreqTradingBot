@@ -8,6 +8,7 @@ ddd = [0,1,2,3,4,5,6,7,8,9]
 #Enable Trading
 TradingEnabled = True
 FastFill = False
+useRSI = False
 
 #Exchanges
 sym = 'BNBETH'
@@ -39,6 +40,10 @@ MAX_HIST = 40 * samples_per_min
 input_str = input('Enable Fast Fill (Y/N), default no?:')
 if input_str == 'Y':
     FastFill = True
+
+input_str = input('Enable RSI (Y/N), default no?:')
+if input_str == 'Y':
+    useRSI = True
 
 fee = 0.0005
 limit = False
@@ -150,7 +155,7 @@ while(1):
     if(run):
         #Call HFT module to decide
         currTs = time.clock()
-        action = HFT_algo.HFT(cost, lastBuyTs, currTs, price, fee, per_min_history, asks, bids, lastAction)
+        action = HFT_algo.HFT(cost, lastBuyTs, currTs, price, fee, per_min_history, asks, bids, lastAction, useRSI)
 
         #Perform action
         if (action > 0 and action != lastAction):

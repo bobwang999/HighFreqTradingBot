@@ -122,12 +122,18 @@ def RSI(values, window = 14):
     return RSI
     
 
-def HFT(cost, lastBuyTs, currTs, price, fee, history, asks, bids, lastAction):
+def HFT(cost, lastBuyTs, currTs, price, fee, history, asks, bids, lastAction, useRSI):
     #print("LEN: "+str(len(history)))
     #print(history)
 
     MACDvalue = MACD(history);
-    RSIvalue = RSI(history);
+
+    if useRSI == True:
+        RSIvalue = RSI(history);
+    else:
+        RSIvalue = 50
+        RSI_Sell_levels = [100, 0, 0]
+        RSI_Buy_levels = [0, 100, 100]
 
     #print("RSI: " + str(RSIvalue))
     #print("MACD: "+str(MACDvalue))
