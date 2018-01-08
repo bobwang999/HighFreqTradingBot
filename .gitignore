@@ -3,3 +3,4 @@ scracth.txt
 *.pyc
 *.bat
 log.csv
+LOG_*.txt

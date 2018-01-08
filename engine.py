@@ -108,6 +108,13 @@ def LOG(s):
         print(s)
     with open ("LOG_"+str(StartTime)+".txt","a") as file:
         file.write(s+'\n')
+
+def checkSwitch():
+    r = False
+    with open("switch.txt","r") as switch:
+        if (switch.readline() =="1"):
+            r = True
+    return r
     
 
 accProfit  = 0
@@ -137,6 +144,9 @@ if (FastFill):
 
 try:
     while(1):
+        if(checkSwitch() == False):
+            LOG("Exiting as it is turned off...")
+            break
         run = False
         
         #GET DATA
