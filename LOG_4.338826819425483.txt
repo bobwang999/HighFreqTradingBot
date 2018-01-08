@@ -1,0 +1,5 @@
+[2018/1/8 0:0:41]HFT BOT Starting now for BNBETH
+Amount = 0 SamplingRate = 1 Sample Avg window: 1
+TRADING:False
+FastFill Enabled... starting filling with faster sampling rate
+ENDING... Accumulated Profit: 0 Profit if no sell: 0 Time Taken: 4.338826819425483 s
