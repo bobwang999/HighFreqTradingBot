@@ -23,14 +23,14 @@ if input_str != '':
     amount = int(input_str)
 
 #Sampling CONFIG
-samplingRate = 0.5
-samples_per_min = 30
+samplingRate = 1
+samples_per_min = 60
 
-input_str = input('Enter your sampling rate, default 0.5:')
+input_str = input('Enter your sampling rate, default 1:')
 if input_str != '':
     samplingRate = float(input_str)
 
-input_str = input('Enter your average window, default 30:')
+input_str = input('Enter your average window, default 60:')
 if input_str != '':
     samples_per_min = int(input_str)
 
