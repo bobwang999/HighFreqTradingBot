@@ -7,7 +7,7 @@ ddd = [0,1,2,3,4,5,6,7,8,9]
 
 #Enable Trading
 TradingEnabled = True
-FastFill = True
+FastFill = False
 
 #Exchanges
 sym = 'BNBETH'
@@ -35,6 +35,10 @@ if input_str != '':
     samples_per_min = int(input_str)
 
 MAX_HIST = 40 * samples_per_min
+
+input_str = input('Enable Fast Fill (Y/N), default no?:')
+if input_str == 'Y':
+    FastFill = True
 
 fee = 0.0005
 limit = False
